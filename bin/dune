@@ -1,0 +1,4 @@
+(executable
+ (public_name chemistrything)
+ (name main)
+ (libraries chemistrything))
