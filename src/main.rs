@@ -12,7 +12,7 @@ fn main() {
 
     crossterm::terminal::enable_raw_mode().unwrap();
 
-    crossterm::execute!(stdout(), cursor::Hide, terminal::Clear(terminal::ClearType::All)).unwrap();
+    crossterm::execute!(stdout(), cursor::Hide, terminal::Clear(terminal::ClearType::All), cursor::MoveTo(0, 0)).unwrap();
 
     let mut s = String::new();
     loop {
@@ -20,11 +20,19 @@ fn main() {
             Event::Key(KeyEvent {
                 code, ..
             }) => {
-                if let KeyCode::Backspace = code {
-                    crossterm::terminal::disable_raw_mode().unwrap();
-                    break;
+                match code {
+                    KeyCode::Esc => {
+                        crossterm::terminal::disable_raw_mode().unwrap();
+                        break;
+                    }
+                    KeyCode::Char(ch) => {
+                        crossterm::execute!(stdout(), style::Print(ch)).unwrap();
+                    }
+                    KeyCode::Enter => {
+                        crossterm::execute!(stdout(), cursor::MoveToNextLine(1), style::Print("> ")).unwrap();
+                    }
+                    _ => ()
                 }
-                crossterm::execute!(stdout(), terminal::Clear(terminal::ClearType::CurrentLine), cursor::MoveTo(0, 0), style::Print(format!("{:?}", code))).unwrap();
             }
             _ => ()
         }
