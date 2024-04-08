@@ -1,5 +1,9 @@
 //! Using schema and data fetched from:
+//! 
 //! [https://github.com/Bowserinator/Periodic-Table-JSON]
+//! 
+//! Data licensed under [CC BY-SA 3.0 DEED](https://creativecommons.org/licenses/by-sa/3.0/)
+//! from [Bowserinator](https://github.com/Bowserinator) on GitHub.
 use std::collections::HashMap;
 
 use slotmap::{SlotMap, new_key_type};
