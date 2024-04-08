@@ -103,5 +103,9 @@ mod tests {
         assert_eq!(p.by_name("Hydrogen").unwrap().symbol, "H");
         assert_eq!(p.by_name("Helium").unwrap().symbol, "He");
         assert_eq!(p.by_name("Lithium").unwrap().symbol, "Li");
+
+        assert_eq!(p.by_symbol("H").unwrap().number, 1);
+        assert_eq!(p.by_symbol("He").unwrap().number, 2);
+        assert_eq!(p.by_symbol("Li").unwrap().number, 3);
     }
 }
