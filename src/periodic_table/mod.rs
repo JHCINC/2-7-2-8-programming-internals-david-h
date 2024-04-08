@@ -82,3 +82,22 @@ impl PeriodicTable {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use super::PeriodicTable;
+
+    #[test]
+    fn assert_basic_elements() {
+        let p = PeriodicTable::from_json(File::open("./PeriodicTableJSON.json").unwrap()).unwrap();
+
+        assert_eq!(p.by_number(1).unwrap().name, "Hydrogen");
+        assert_eq!(p.by_number(2).unwrap().name, "Helium");
+        assert_eq!(p.by_number(3).unwrap().name, "Lithium");
+
+        assert_eq!(p.by_name("Hydrogen").unwrap().symbol, "H");
+        assert_eq!(p.by_name("Helium").unwrap().symbol, "He");
+        assert_eq!(p.by_name("Lithium").unwrap().symbol, "Li");
+    }
+}
