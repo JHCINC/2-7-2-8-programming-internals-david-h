@@ -4,6 +4,7 @@ use crossterm::event::KeyCode;
 use crossterm::{cursor, style, terminal};
 use crossterm::{tty::IsTty, event::{Event, KeyEvent}};
 mod periodic_table;
+mod equations;
 fn main() {
 
     if !stdout().is_tty() {
