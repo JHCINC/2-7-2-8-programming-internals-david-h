@@ -4,11 +4,12 @@
 //! 
 //! Data licensed under [CC BY-SA 3.0 DEED](https://creativecommons.org/licenses/by-sa/3.0/)
 //! from [Bowserinator](https://github.com/Bowserinator) on GitHub.
-use std::collections::HashMap;
+use std::{collections::HashMap, num::NonZeroU32};
 
 use slotmap::{SlotMap, new_key_type};
 
 mod deser;
+pub type ElementNumber = NonZeroU32;
 
 
 new_key_type! { struct ElementKey; }
@@ -16,7 +17,7 @@ new_key_type! { struct ElementKey; }
 /// The data of a periodic table.
 pub struct PeriodicTable {
     by_name: HashMap<String, ElementKey>,
-    by_number: HashMap<u32, ElementKey>,
+    by_number: HashMap<ElementNumber, ElementKey>,
     by_symbol: HashMap<String, ElementKey>,
     elements: SlotMap<ElementKey, deser::Element>
 }
@@ -39,7 +40,7 @@ impl PeriodicTable {
     /// with the given number.
     pub fn by_number(&self, num: u32) -> Option<&deser::Element> {
 
-        let idx = self.by_number.get(&num)?;
+        let idx = self.by_number.get(&NonZeroU32::new(num)?)?;
         Some(&self.elements[*idx])
     }
 
@@ -104,8 +105,8 @@ mod tests {
         assert_eq!(p.by_name("Helium").unwrap().symbol, "He");
         assert_eq!(p.by_name("Lithium").unwrap().symbol, "Li");
 
-        assert_eq!(p.by_symbol("H").unwrap().number, 1);
-        assert_eq!(p.by_symbol("He").unwrap().number, 2);
-        assert_eq!(p.by_symbol("Li").unwrap().number, 3);
+        assert_eq!(p.by_symbol("H").unwrap().number.get(), 1);
+        assert_eq!(p.by_symbol("He").unwrap().number.get(), 2);
+        assert_eq!(p.by_symbol("Li").unwrap().number.get(), 3);
     }
 }

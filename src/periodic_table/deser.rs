@@ -1,10 +1,12 @@
 use serde::Deserialize;
 
+use super::ElementNumber;
+
 #[derive(Deserialize, Clone)]
 pub struct Element {
     pub name: String,
     pub symbol: String,
-    pub number: u32,
+    pub number: ElementNumber,
     pub atomic_mass: f64,
     pub density: Option<f64>
 }
