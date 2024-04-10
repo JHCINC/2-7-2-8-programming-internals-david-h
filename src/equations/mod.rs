@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use crate::periodic_table::ElementNumber;
 
 mod parse;
-
+mod solve;
 
 pub struct Component {
     pub element: ElementNumber,
