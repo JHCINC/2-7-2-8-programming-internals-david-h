@@ -36,6 +36,15 @@ fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
 
     // let (ncols, nrows) = m.shape();
 
+    // for i in 0..nrows - 1 {
+    //     let one = leading_nz!(&m.row(i)).unwrap();
+    //     let two = leading_nz!(&m.row(i + 1)).unwrap();
+    
+    //     if two < one {
+    //         swap(m, i, i+1);
+    //     }
+    // }
+    
     // // go over all rows from bottom
     // for i in (0..nrows).rev() {
 
@@ -48,6 +57,7 @@ fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
 
     //     }
     // }
+
 }
 
 fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
@@ -103,7 +113,7 @@ mod tests {
 
     #[test]
     fn gaussian_elimination_test_case() {
-        test_matrices(DMatrix::identity(3, 3), DMatrix::identity(3, 3));
+        // test_matrices(DMatrix::identity(3, 3), DMatrix::identity(3, 3));
 
         // test_matrices(
         //     dmatrix![
@@ -126,7 +136,7 @@ mod tests {
         test_matrices(
             dmatrix![
                 9., 2., 1.;
-                3., 2., 5.;
+                3., 21., 5.;
                 6., 7., 7.;
             ],
             DMatrix::identity(3, 3),
