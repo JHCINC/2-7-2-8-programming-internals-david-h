@@ -1,7 +1,6 @@
-use std::ops::{MulAssign, AddAssign};
+use std::ops::{AddAssign, MulAssign};
 
-use nalgebra::{DMatrixViewMut, DMatrixView, MatrixView1};
-
+use nalgebra::{DMatrixView, DMatrixViewMut, MatrixView1};
 
 // not a function because of weird nalgebra types - should not be a macro
 macro_rules! leading_nz {
@@ -30,21 +29,15 @@ fn add(m: &mut DMatrixViewMut<f64>, a: usize, b: usize, scalar: f64) {
     m.row_mut(a).add_assign(b * scalar);
 }
 
-
 /// Built from:
 /// https://ximera.osu.edu/linearalgebra/textbook/rowReduction/algorithm
 fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
-
     gaussian_elimination_phase_one(m, 0); // steps 1 to 5
-
-
-
 
     // let (ncols, nrows) = m.shape();
 
     // // go over all rows from bottom
     // for i in (0..nrows).rev() {
-
 
     //     // if the row has a leading one
     //     if let Some(nz) = leading_nz!(&m.row(i)) {
@@ -55,29 +48,32 @@ fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
 
     //     }
     // }
-
-    
 }
 
 fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
-
-
-    let leftmost_nz = 'lnz: { for (col_idx, col) in m.column_iter().enumerate() {
+    let leftmost_nz = 'lnz: {
+        for (col_idx, col) in m.column_iter().enumerate() {
             for (row_idx, row) in col.iter().enumerate().skip(skip) {
-                println !("val: {row}");
+                println!("val: {row}");
                 if *row != 0.0 {
                     println!("break");
                     break 'lnz (col_idx, row_idx, *row);
                 }
             }
-        };
-        return
+        }
+        return;
     };
 
     swap(m, 0, leftmost_nz.1);
     mult(m, 0, 1.0 / leftmost_nz.2);
 
-    for (row, val) in m.column(0).clone_owned().into_iter().enumerate().skip(skip + 1) {
+    for (row, val) in m
+        .column(0)
+        .clone_owned()
+        .into_iter()
+        .enumerate()
+        .skip(skip + 1)
+    {
         add(m, row, 0, -val);
     }
 
@@ -86,31 +82,29 @@ fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
     }
 
     gaussian_elimination_phase_one(&mut m.view_range_mut(1.., ..), skip + 1);
-
 }
 
 #[cfg(test)]
 mod tests {
-    use nalgebra::{DMatrix, dmatrix};
+    use nalgebra::{dmatrix, DMatrix};
 
     use super::gaussian_elimination;
 
-    
     fn test_matrices(mut original: DMatrix<f64>, expected: DMatrix<f64>) {
-
         gaussian_elimination(&mut original.view_range_mut(.., ..));
 
         if original != expected {
-            panic!("assertion `original == expected` failed: {} {}", original, expected);
+            panic!(
+                "assertion `original == expected` failed: {} {}",
+                original, expected
+            );
         }
     }
-    
-    
-    
+
     #[test]
     fn gaussian_elimination_test_case() {
-        test_matrices(DMatrix::identity(3, 3), DMatrix::identity(3, 3));  
-        
+        test_matrices(DMatrix::identity(3, 3), DMatrix::identity(3, 3));
+
         // test_matrices(
         //     dmatrix![
         //         1.0, 0.0, 0.0;
@@ -135,7 +129,7 @@ mod tests {
                 3., 2., 5.;
                 6., 7., 7.;
             ],
-            DMatrix::identity(3, 3)
+            DMatrix::identity(3, 3),
         );
     }
 }
