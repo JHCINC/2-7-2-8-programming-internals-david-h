@@ -9,9 +9,17 @@ use super::Equation;
 fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<usize>> {
     let products = eq.total_product_elements();
 
+
     let mut element_order = BiMap::new();
-    for (index, product) in products.iter().enumerate() {
-        element_order.insert(product.0, index);
+
+    {
+        let mut products_iter = products.iter().collect::<Vec<_>>();
+
+        products_iter.sort_by(|a, b| a.0.cmp(b.0));
+    
+        for (index, product) in products_iter.into_iter().enumerate() {
+            element_order.insert(product.0, index);
+        }
     }
 
     // create a matrix with as many rows
@@ -72,8 +80,8 @@ mod tests {
         assert_eq!(
             create_matrix(&eq).unwrap(),
             matrix![
-                0, 2, 1;
                 2, 0, 2;
+                0, 2, 1;
             ]
         )
     }
