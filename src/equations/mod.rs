@@ -4,6 +4,7 @@ use crate::periodic_table::ElementNumber;
 
 mod parse;
 mod solve;
+mod util;
 
 pub struct Component {
     pub element: ElementNumber,
