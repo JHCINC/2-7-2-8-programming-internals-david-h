@@ -2,7 +2,7 @@ use std::{collections::HashMap, num::NonZeroUsize};
 
 use crate::periodic_table::ElementNumber;
 
-mod parse;
+pub mod parse;
 mod solve;
 mod util;
 
