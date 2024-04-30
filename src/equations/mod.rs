@@ -6,10 +6,12 @@ pub mod parse;
 mod solve;
 mod util;
 
+#[derive(Debug)]
 pub struct Component {
     pub element: ElementNumber,
     pub subscript: NonZeroUsize,
 }
+#[derive(Debug)]
 pub struct EquationConstituent {
     pub coefficient: NonZeroUsize,
     pub components: Vec<Component>,
@@ -46,7 +48,7 @@ impl EquationConstituent {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Equation {
     reactants: Vec<EquationConstituent>,
     products: Vec<EquationConstituent>,
