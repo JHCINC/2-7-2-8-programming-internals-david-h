@@ -87,6 +87,11 @@ impl PeriodicTable {
     }
 }
 
+/// Values printable with a PeriodicTable.
+pub trait TablePrintable {
+    fn fmt(&self, t: &PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result;
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;

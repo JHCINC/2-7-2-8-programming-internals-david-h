@@ -1,20 +1,50 @@
 use std::{collections::HashMap, num::NonZeroUsize};
 
-use crate::periodic_table::ElementNumber;
+
+
+
+use crate::periodic_table::{ElementNumber, TablePrintable, PeriodicTable};
 
 pub mod parse;
 mod solve;
 mod util;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Component {
     pub element: ElementNumber,
     pub subscript: NonZeroUsize,
 }
-#[derive(Debug)]
+impl TablePrintable for Component {
+    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        let name = &t.by_number(self.element.get()).unwrap().symbol;
+        write!(f, "{name}")?;
+
+        let subscript = self.subscript.get();
+        if subscript > 1 {
+            write!(f, "{}", subscript_util(subscript as u32))?;
+        }
+        Ok(())
+    }
+}
+
+
+#[derive(Debug, Clone)]
 pub struct EquationConstituent {
     pub coefficient: NonZeroUsize,
     pub components: Vec<Component>,
+}
+
+impl TablePrintable for EquationConstituent {
+    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        let coefficient = self.coefficient.get();
+        if coefficient > 1 {
+            write!(f, "{}", coefficient)?;
+        }
+        for c in &self.components {
+            TablePrintable::fmt(c, t, f)?;
+        }
+        Ok(())
+    }
 }
 
 impl EquationConstituent {
@@ -82,6 +112,8 @@ impl Equation {
         elements
     }
 }
+
+pub use util::subscript_util;
 
 #[cfg(test)]
 mod tests {
