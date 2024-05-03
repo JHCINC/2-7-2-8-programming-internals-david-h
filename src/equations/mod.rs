@@ -78,13 +78,44 @@ impl EquationConstituent {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Equation {
     reactants: Vec<EquationConstituent>,
     products: Vec<EquationConstituent>,
 }
+impl TablePrintable for Equation {
+    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+
+        let num_reactants = self.reactants.len();
+        for (idx, c) in self.reactants.iter().enumerate() {
+            TablePrintable::fmt(c, t, f)?;
+            if idx != num_reactants - 1 {
+                write!(f, " + ")?;
+            }
+        }
+        write!(f, " = ")?;
+        for product in &self.products {
+            TablePrintable::fmt(product, t, f)?;
+        }
+        Ok(())
+    }
+}
+
+
 
 impl Equation {
+
+    pub fn balanced(&mut self) -> anyhow::Result<Self> {
+        let mut new = self.clone();
+        solve::balance_equation(&mut new)?;
+        Ok(new)
+    }
+
+    pub fn to_string(&self, p: &PeriodicTable) -> anyhow::Result<String> {
+        let mut buf = String::new();
+        TablePrintable::fmt(self, p, &mut buf)?;
+        Ok(buf)
+    }
 
     pub fn reactants(&self) -> &[EquationConstituent] {
         &self.reactants

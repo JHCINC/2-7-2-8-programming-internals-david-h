@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, num::NonZeroUsize};
 
 use anyhow::bail;
 use bimap::BiMap;
@@ -6,7 +6,50 @@ use nalgebra::DMatrix;
 
 use super::Equation;
 
-fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<usize>> {
+
+pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
+    let matrix = create_matrix(eq)?;
+    
+    let mut solutions = super::util::gaussian_elimination(&matrix.view_range(.., ..));
+
+
+    // supremely naive.
+    
+    // if contains non-integers
+    if !solutions.iter().all(|v| v.fract() == 0.0) {
+        // try scalars up to 100
+
+        let mut solutions_clone = solutions.clone();
+        for scalar in 2..100 {
+            
+            for value in solutions_clone.iter_mut() {
+                *value *= scalar as f64;
+            }
+
+            if solutions_clone.iter().all(|v| v.fract() == 0.0) {
+                solutions = solutions_clone;
+                for v in eq.products.iter_mut() {
+                    v.coefficient = NonZeroUsize::new(scalar).unwrap();
+                }
+                break;
+            } else {
+                solutions_clone = solutions.clone();
+            }
+
+        }
+    }
+
+    for (v, value) in eq.reactants.iter_mut().zip(solutions.into_iter()) {
+        v.coefficient = NonZeroUsize::new(value as usize).unwrap();
+    }
+
+
+    Ok(())
+
+}
+
+
+fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
     let products = eq.total_product_elements();
 
 
@@ -26,14 +69,14 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<usize>> {
     // as there are element products and
     // as many columns as there are reactants
     // plus one, accounting for the product.
-    let mut matrix = DMatrix::<usize>::zeros(products.len(), eq.num_reactants() + 1);
+    let mut matrix = DMatrix::<f64>::zeros(products.len(), eq.num_reactants() + 1);
 
     let mut last_column = matrix.column_mut(products.len());
 
     // fill the last column with the products
     for (index, value) in last_column.iter_mut().enumerate() {
         let element_for_slot = element_order.get_by_right(&index).unwrap();
-        *value = products[element_for_slot]
+        *value = products[element_for_slot] as f64
     }
 
     // fill each row with the number of
@@ -46,7 +89,7 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<usize>> {
                 bail!("Unused constituent on LHS")
             };
 
-            *row.get_mut(index).expect("Matrix should be correct size") = count;
+            *row.get_mut(index).expect("Matrix should be correct size") = count as f64;
         }
     }
 
@@ -59,7 +102,7 @@ mod tests {
 
     use nalgebra::matrix;
 
-    use crate::equations::{solve::create_matrix, Equation, EquationConstituent};
+    use crate::{equations::{solve::create_matrix, Equation, EquationConstituent}, periodic_table::{TablePrintable, PeriodicTable}};
 
     #[test]
     fn test_water() {
@@ -80,9 +123,14 @@ mod tests {
         assert_eq!(
             create_matrix(&eq).unwrap(),
             matrix![
-                2, 0, 2;
-                0, 2, 1;
+                2., 0., 2.;
+                0., 2., 1.;
             ]
-        )
+        );
+
+        let mut eq = eq;
+        let p = PeriodicTable::from_json(std::fs::File::open("./PeriodicTableJSON.json").unwrap()).unwrap();
+        super::balance_equation(&mut eq).unwrap();
+        panic!("{}", eq.to_string(&p).unwrap());
     }
 }

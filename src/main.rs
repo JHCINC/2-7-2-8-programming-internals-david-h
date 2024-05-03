@@ -13,14 +13,11 @@ use std::io::{stdin, stdout};
 use std::num::NonZeroUsize;
 
 use crate::equations::parse::{parse_equation, Token};
+use crate::equations::subscript_util;
 use crate::periodic_table::PeriodicTable;
 mod equations;
 mod periodic_table;
 
-fn subscript_util(digit: u32) -> char {
-    assert!(digit < 10); // only digits from 0 to 9
-    char::from_u32('\u{2080}' as u32 + digit).unwrap()
-}
 
 fn main() {
     if !stdout().is_tty() {
@@ -146,8 +143,8 @@ fn main() {
                     crossterm::execute!(stdout(), cursor::MoveToNextLine(1), style::Print("> "))
                         .unwrap();
                     crossterm::terminal::disable_raw_mode().unwrap();
-                    let eqn = parse_equation(tokens.into_iter());
-                    panic!("{:?}", eqn);
+                    let eqn = parse_equation(tokens.into_iter()).unwrap().balanced().unwrap();
+                    panic!("{}", eqn.to_string(&p).unwrap());
                 }
                 _ => (),
             },

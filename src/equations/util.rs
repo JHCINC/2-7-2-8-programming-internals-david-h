@@ -2,6 +2,63 @@ use std::ops::{AddAssign, MulAssign};
 
 use nalgebra::{DMatrixView, DMatrixViewMut, MatrixView1};
 
+mod stolen_impl {
+
+    pub fn gaussian_elimination(matrix: &mut [Vec<f64>]) -> Vec<f64> {
+        let size = matrix.len();
+        assert_eq!(size, matrix[0].len() - 1);
+
+        for i in 0..size - 1 {
+            for j in i..size - 1 {
+                echelon(matrix, i, j);
+            }
+        }
+
+        for i in (1..size).rev() {
+            eliminate(matrix, i);
+        }
+
+        // Disable cargo clippy warnings about needless range loops.
+        // Checking the diagonal like this is simpler than any alternative.
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..size {
+            if matrix[i][i] == 0f64 {
+                println!("Infinitely many solutions");
+            }
+        }
+
+        let mut result: Vec<f64> = vec![0f64; size];
+        for i in 0..size {
+            result[i] = matrix[i][size] / matrix[i][i];
+        }
+        result
+    }
+
+    fn echelon(matrix: &mut [Vec<f64>], i: usize, j: usize) {
+        let size = matrix.len();
+        if matrix[i][i] == 0f64 {
+        } else {
+            let factor = matrix[j + 1][i] / matrix[i][i];
+            (i..size + 1).for_each(|k| {
+                matrix[j + 1][k] -= factor * matrix[i][k];
+            });
+        }
+    }
+
+    fn eliminate(matrix: &mut [Vec<f64>], i: usize) {
+        let size = matrix.len();
+        if matrix[i][i] == 0f64 {
+        } else {
+            for j in (1..i + 1).rev() {
+                let factor = matrix[j - 1][i] / matrix[i][i];
+                for k in (0..size + 1).rev() {
+                    matrix[j - 1][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+    }
+}
+
 // not a function because of weird nalgebra types - should not be a macro
 macro_rules! leading_nz {
     ($matrix:expr) => {
@@ -31,33 +88,20 @@ fn add(m: &mut DMatrixViewMut<f64>, a: usize, b: usize, scalar: f64) {
 
 /// Built from:
 /// https://ximera.osu.edu/linearalgebra/textbook/rowReduction/algorithm
-fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
-    gaussian_elimination_phase_one(m, 0); // steps 1 to 5
+/// Currently is not - stolen implementation from https://github.com/TheAlgorithms/Rust/blob/master/src/math/gaussian_elimination.rs for testing
+pub fn gaussian_elimination(m: &DMatrixView<f64>) -> Vec<f64> {
 
-    // let (ncols, nrows) = m.shape();
 
-    // for i in 0..nrows - 1 {
-    //     let one = leading_nz!(&m.row(i)).unwrap();
-    //     let two = leading_nz!(&m.row(i + 1)).unwrap();
-    
-    //     if two < one {
-    //         swap(m, i, i+1);
-    //     }
-    // }
-    
-    // // go over all rows from bottom
-    // for i in (0..nrows).rev() {
+    let mut values = vec![];
+    for row in m.row_iter() {
+        let mut v = vec![];
+        for value in row.iter() {
+            v.push(*value);
+        }
+        values.push(v);
+    }
 
-    //     // if the row has a leading one
-    //     if let Some(nz) = leading_nz!(&m.row(i)) {
-
-    //         for (row, val) in m.column(nz).clone_owned().into_iter().enumerate().take(i) {
-    //             add(m, row, i, -val);
-    //         }
-
-    //     }
-    // }
-
+    stolen_impl::gaussian_elimination(&mut values)
 }
 
 fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
@@ -100,21 +144,9 @@ mod tests {
 
     use super::gaussian_elimination;
 
-    fn test_matrices(mut original: DMatrix<f64>, expected: DMatrix<f64>) {
-        gaussian_elimination(&mut original.view_range_mut(.., ..));
-
-        if original != expected {
-            panic!(
-                "assertion `original == expected` failed: {} {}",
-                original, expected
-            );
-        }
-    }
 
     #[test]
     fn gaussian_elimination_test_case() {
-        // test_matrices(DMatrix::identity(3, 3), DMatrix::identity(3, 3));
-
         // test_matrices(
         //     dmatrix![
         //         1.0, 0.0, 0.0;
@@ -133,13 +165,15 @@ mod tests {
         //     DMatrix::identity(3, 3)
         // );
 
-        test_matrices(
-            dmatrix![
-                9., 2., 1.;
-                3., 21., 5.;
-                6., 7., 7.;
-            ],
-            DMatrix::identity(3, 3),
-        );
+            let mut m = dmatrix![
+                2., 0., 2.;
+                0., 2., 1.;
+            ];
+            assert_eq!(gaussian_elimination(&m.view_range(.., ..)), [1.0, 0.5]);
     }
+}
+
+pub fn subscript_util(digit: u32) -> char {
+    assert!(digit < 10); // only digits from 0 to 9
+    char::from_u32('\u{2080}' as u32 + digit).unwrap()
 }
