@@ -93,9 +93,11 @@ impl TablePrintable for Equation {
                 write!(f, " + ")?;
             }
         }
-        write!(f, " = ")?;
-        for product in &self.products {
-            TablePrintable::fmt(product, t, f)?;
+        if !self.products.is_empty() {
+            write!(f, " = ")?;
+            for product in &self.products {
+                TablePrintable::fmt(product, t, f)?;
+            }
         }
         Ok(())
     }
