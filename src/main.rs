@@ -17,7 +17,7 @@ use crate::equations::subscript_util;
 use crate::periodic_table::PeriodicTable;
 mod equations;
 mod periodic_table;
-
+mod tui;
 
 fn main() {
     if !stdout().is_tty() {
