@@ -172,8 +172,3 @@ mod tests {
             assert_eq!(gaussian_elimination(&m.view_range(.., ..)), [1.0, 0.5]);
     }
 }
-
-pub fn subscript_util(digit: u32) -> char {
-    assert!(digit < 10); // only digits from 0 to 9
-    char::from_u32('\u{2080}' as u32 + digit).unwrap()
-}

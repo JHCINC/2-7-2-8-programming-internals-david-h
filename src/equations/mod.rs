@@ -1,9 +1,11 @@
 use std::{collections::HashMap, num::NonZeroUsize};
 
+use crate::{
+    periodic_table::{ElementNumber, PeriodicTable, TablePrintable},
+    tui::subscript_util,
+};
 
-
-
-use crate::periodic_table::{ElementNumber, TablePrintable, PeriodicTable};
+use self::parse::{parse_equation, Token};
 
 pub mod parse;
 mod solve;
@@ -15,7 +17,11 @@ pub struct Component {
     pub subscript: NonZeroUsize,
 }
 impl TablePrintable for Component {
-    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        t: &crate::periodic_table::PeriodicTable,
+        f: &mut impl std::fmt::Write,
+    ) -> std::fmt::Result {
         let name = &t.by_number(self.element.get()).unwrap().symbol;
         write!(f, "{name}")?;
 
@@ -27,7 +33,6 @@ impl TablePrintable for Component {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct EquationConstituent {
     pub coefficient: NonZeroUsize,
@@ -35,7 +40,11 @@ pub struct EquationConstituent {
 }
 
 impl TablePrintable for EquationConstituent {
-    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        t: &crate::periodic_table::PeriodicTable,
+        f: &mut impl std::fmt::Write,
+    ) -> std::fmt::Result {
         let coefficient = self.coefficient.get();
         if coefficient > 1 {
             write!(f, "{}", coefficient)?;
@@ -48,18 +57,17 @@ impl TablePrintable for EquationConstituent {
 }
 
 impl EquationConstituent {
-
     pub fn new(coefficient: usize, components: &[(ElementNumber, usize)]) -> Self {
         let mut components_store = vec![];
         for (element, count) in components {
             components_store.push(Component {
                 element: *element,
-                subscript: NonZeroUsize::new(*count).unwrap()
+                subscript: NonZeroUsize::new(*count).unwrap(),
             });
-        } 
+        }
         Self {
             coefficient: NonZeroUsize::new(coefficient).unwrap(),
-            components: components_store
+            components: components_store,
         }
     }
 
@@ -84,8 +92,11 @@ pub struct Equation {
     products: Vec<EquationConstituent>,
 }
 impl TablePrintable for Equation {
-    fn fmt(&self, t: &crate::periodic_table::PeriodicTable, f: &mut impl std::fmt::Write) -> std::fmt::Result {
-
+    fn fmt(
+        &self,
+        t: &crate::periodic_table::PeriodicTable,
+        f: &mut impl std::fmt::Write,
+    ) -> std::fmt::Result {
         let num_reactants = self.reactants.len();
         for (idx, c) in self.reactants.iter().enumerate() {
             TablePrintable::fmt(c, t, f)?;
@@ -103,10 +114,7 @@ impl TablePrintable for Equation {
     }
 }
 
-
-
 impl Equation {
-
     pub fn balanced(&mut self) -> anyhow::Result<Self> {
         let mut new = self.clone();
         solve::balance_equation(&mut new)?;
@@ -131,7 +139,7 @@ impl Equation {
         self.reactants.len()
     }
 
-    /// Returns all of the elements present 
+    /// Returns all of the elements present
     /// in the product with duplicates
     /// coalesced.
     pub fn total_product_elements(&self) -> HashMap<ElementNumber, usize> {
@@ -146,21 +154,20 @@ impl Equation {
     }
 }
 
-pub use util::subscript_util;
-
 #[cfg(test)]
 mod tests {
-    use std::num::{NonZeroUsize, NonZeroU32};
+    use std::num::{NonZeroU32, NonZeroUsize};
 
-    use super::{EquationConstituent, Component};
+    use super::{Component, EquationConstituent};
 
     #[test]
     fn constituent_elements() {
         let mut con = EquationConstituent {
             coefficient: NonZeroUsize::new(3).unwrap(),
-            components: vec![
-                Component { element: NonZeroU32::new(1).unwrap(), subscript: NonZeroUsize::new(2).unwrap() }
-            ],
+            components: vec![Component {
+                element: NonZeroU32::new(1).unwrap(),
+                subscript: NonZeroUsize::new(2).unwrap(),
+            }],
         };
 
         let vals = con.elements().collect::<Vec<_>>();

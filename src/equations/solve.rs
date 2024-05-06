@@ -8,6 +8,10 @@ use super::Equation;
 
 
 pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
+    if eq.products.is_empty() {
+        return Ok(()); // no products - can't balance.
+    }
+
     let matrix = create_matrix(eq)?;
     
     let mut solutions = super::util::gaussian_elimination(&matrix.view_range(.., ..));
