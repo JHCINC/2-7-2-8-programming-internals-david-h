@@ -13,3 +13,4 @@ slotmap = "1"
 anyhow = "1"
 nalgebra = "0.32"
 bimap = "0.6.3"
+gauss_jordan_elimination = { version = "0.2.0", features = ["generic_calculation"] }

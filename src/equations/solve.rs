@@ -14,39 +14,38 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
 
     let mut matrix = create_matrix(eq)?;
     
-    let mut solutions = super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
-    panic!("Matrix {matrix} solutions {solutions:?}");
-
-    // // supremely naive.
+    super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
     
-    // // if contains non-integers
-    // if !solutions.iter().all(|v| v.fract() == 0.0) {
-    //     // try scalars up to 100
+    let mut solutions = matrix.row(matrix.nrows() - 1).clone_owned().data.as_mut_slice()[1..].to_vec();
+    
+    solutions.iter_mut().for_each(|v| *v = v.abs());
 
-    //     let mut solutions_clone = solutions.clone();
-    //     for scalar in 2..100 {
+    // supremely naive.
+    
+    // if contains non-integers
+    if !solutions.iter().all(|v| v.fract() == 0.0) {
+        // try scalars up to 100
+
+        let mut solutions_clone = solutions.clone();
+        for scalar in 2..100 {
             
-    //         for value in solutions_clone.iter_mut() {
-    //             *value *= scalar as f64;
-    //         }
+            for value in solutions_clone.iter_mut() {
+                *value *= scalar as f64;
+            }
 
-    //         if solutions_clone.iter().all(|v| v.fract() == 0.0) {
-    //             solutions = solutions_clone;
-    //             for v in eq.products.iter_mut() {
-    //                 v.coefficient = NonZeroUsize::new(scalar).unwrap();
-    //             }
-    //             break;
-    //         } else {
-    //             solutions_clone = solutions.clone();
-    //         }
+            if solutions_clone.iter().all(|v| v.fract() == 0.0) {
+                solutions = solutions_clone;
+                solutions.push(scalar as f64);
+                break;
+            } else {
+                solutions_clone = solutions.clone();
+            }
 
-    //     }
-    // }
-
-    // for (v, value) in eq.reactants.iter_mut().chain(eq.products.iter_mut()).zip(solutions.into_iter()) {
-    //     println!("Val: {value}");
-    //     v.coefficient = NonZeroUsize::new(value as usize).unwrap();
-    // }
+        }
+    }
+    for (v, value) in eq.reactants.iter_mut().chain(eq.products.iter_mut()).zip(solutions.into_iter()) {
+        v.coefficient = NonZeroUsize::new(value as usize).unwrap();
+    }
 
 
     Ok(())
