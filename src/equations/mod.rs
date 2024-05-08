@@ -2,7 +2,7 @@ use std::{collections::HashMap, num::NonZeroUsize};
 
 use crate::{
     periodic_table::{ElementNumber, PeriodicTable, TablePrintable},
-    tui::subscript_util,
+    tui::{subscript_num, subscript_util},
 };
 
 use self::parse::{parse_equation, Token};

@@ -222,3 +222,24 @@ pub fn subscript_util(digit: u32) -> char {
     assert!(digit < 10); // only digits from 0 to 9
     char::from_u32('\u{2080}' as u32 + digit).unwrap()
 }
+pub fn subscript_num(num: u32) -> String {
+    let mut s = String::new();
+
+    let num_digits = num.ilog10() + 1;
+    let nth_digit = |n| (num / 10u32.pow(num_digits - n)) % 10;
+
+    for i in 0..num_digits {
+        s.push(subscript_util(nth_digit(i + 1)));
+    }
+    s
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tui::subscript_num;
+
+    #[test]
+    fn subscript_test() {
+        assert_eq!(subscript_num(12), "₁₂");
+    }
+}
