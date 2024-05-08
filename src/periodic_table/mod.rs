@@ -1,16 +1,15 @@
 //! Using schema and data fetched from:
-//! 
+//!
 //! [https://github.com/Bowserinator/Periodic-Table-JSON]
-//! 
+//!
 //! Data licensed under [CC BY-SA 3.0 DEED](https://creativecommons.org/licenses/by-sa/3.0/)
 //! from [Bowserinator](https://github.com/Bowserinator) on GitHub.
 use std::{collections::HashMap, num::NonZeroU32};
 
-use slotmap::{SlotMap, new_key_type};
+use slotmap::{new_key_type, SlotMap};
 
 mod deser;
 pub type ElementNumber = NonZeroU32;
-
 
 new_key_type! { struct ElementKey; }
 
@@ -19,48 +18,41 @@ pub struct PeriodicTable {
     by_name: HashMap<String, ElementKey>,
     by_number: HashMap<ElementNumber, ElementKey>,
     by_symbol: HashMap<String, ElementKey>,
-    elements: SlotMap<ElementKey, deser::Element>
+    elements: SlotMap<ElementKey, deser::Element>,
 }
 
 impl PeriodicTable {
-
-    /// Gets an element by symbol. 
-    /// 
+    /// Gets an element by symbol.
+    ///
     /// Returns `None` if there is no element
     /// with the given symbol.
     pub fn by_symbol(&self, sym: &str) -> Option<&deser::Element> {
-
         let idx = self.by_symbol.get(sym)?;
         Some(&self.elements[*idx])
     }
 
-    /// Gets an element by number. 
-    /// 
+    /// Gets an element by number.
+    ///
     /// Returns `None` if there is no element
     /// with the given number.
     pub fn by_number(&self, num: u32) -> Option<&deser::Element> {
-
         let idx = self.by_number.get(&NonZeroU32::new(num)?)?;
         Some(&self.elements[*idx])
     }
 
-    /// Gets an element by name. 
-    /// 
+    /// Gets an element by name.
+    ///
     /// Returns `None` if there is no element
     /// with the given name.
     pub fn by_name(&self, name: &str) -> Option<&deser::Element> {
-
         let idx = self.by_name.get(name)?;
         Some(&self.elements[*idx])
     }
 
-
-    /// Accepts JSON data in the schema 
+    /// Accepts JSON data in the schema
     /// depicted in the [deser] module.
     pub fn from_json(s: impl std::io::Read) -> anyhow::Result<Self> {
-        
         let table: deser::Table = serde_json::from_reader(s)?;
-
 
         let mut elements = SlotMap::with_key();
 
@@ -68,21 +60,19 @@ impl PeriodicTable {
         let mut by_number = HashMap::default();
         let mut by_symbol = HashMap::default();
 
-
         for element_entry in table.elements {
             let index = elements.insert(element_entry.clone());
 
             by_name.insert(element_entry.name, index);
             by_number.insert(element_entry.number, index);
             by_symbol.insert(element_entry.symbol, index);
-            
         }
 
         Ok(Self {
             elements,
             by_name,
             by_number,
-            by_symbol
+            by_symbol,
         })
     }
 }

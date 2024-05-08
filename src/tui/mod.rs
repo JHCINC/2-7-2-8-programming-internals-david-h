@@ -85,7 +85,7 @@ impl<'a> TUIAcceptor<'a> {
                 if let Err(e) = self.handle_enter() {
                     self.emit_str(e)?;
                 }
-            },
+            }
             KeyCode::Char('+') => self.handle_token('+', TUIToken::Plus)?,
             KeyCode::Char('=') => self.handle_token('=', TUIToken::Equals)?,
             KeyCode::Char('(') => self.handle_token('(', TUIToken::LParen)?,
@@ -121,7 +121,10 @@ impl<'a> TUIAcceptor<'a> {
                     if is_parenthesised {
                         bail!("Already parenthesised");
                     }
-                    component_stack.push(ComponentType::Multiple(vec![], NonZeroUsize::new(1).unwrap()));
+                    component_stack.push(ComponentType::Multiple(
+                        vec![],
+                        NonZeroUsize::new(1).unwrap(),
+                    ));
                     is_parenthesised = true;
                 }
                 TUIToken::RParen => {
@@ -135,16 +138,19 @@ impl<'a> TUIAcceptor<'a> {
                         .ok_or(anyhow!("element {elem} nonexistent"))?
                         .number;
                     if !is_parenthesised {
-                        component_stack.push(ComponentType::Element(Component { element, subscript }))
-                    } else if let Some(ComponentType::Multiple(vec, _)) = component_stack.last_mut() {
+                        component_stack
+                            .push(ComponentType::Element(Component { element, subscript }))
+                    } else if let Some(ComponentType::Multiple(vec, _)) = component_stack.last_mut()
+                    {
                         vec.push(Component { element, subscript });
                     } else {
                         unreachable!()
                     }
                 }
                 TUIToken::Subscript(n) => {
-                    let subscript = NonZeroUsize::new(n.parse()?).ok_or(anyhow!("Zero subscript"))?;
-                    
+                    let subscript =
+                        NonZeroUsize::new(n.parse()?).ok_or(anyhow!("Zero subscript"))?;
+
                     if let Some(last) = component_stack.last_mut() {
                         match last {
                             ComponentType::Element(c) => {
@@ -154,7 +160,9 @@ impl<'a> TUIAcceptor<'a> {
                                 if !is_parenthesised {
                                     *sub = subscript;
                                 } else {
-                                    vals.last_mut().ok_or(anyhow!("subscript without preceding"))?.subscript = subscript;
+                                    vals.last_mut()
+                                        .ok_or(anyhow!("subscript without preceding"))?
+                                        .subscript = subscript;
                                 }
                             }
                         }
@@ -168,21 +176,22 @@ impl<'a> TUIAcceptor<'a> {
                     }
                     match t {
                         TUIToken::Coefficient(n) => tokens.push(Token::Coefficient(
-                            NonZeroUsize::new(n.parse()?).ok_or(anyhow::anyhow!("Zero coefficient"))?,
+                            NonZeroUsize::new(n.parse()?)
+                                .ok_or(anyhow::anyhow!("Zero coefficient"))?,
                         )),
-    
+
                         TUIToken::Equals => tokens.push(Token::Arrow),
                         TUIToken::Plus => tokens.push(Token::Plus),
                         TUIToken::Whitespace(_) => (),
-                        _ => ()
+                        _ => (),
                     }
-                },
+                }
             }
         }
         for t in std::mem::take(&mut component_stack) {
             tokens.push(Token::Component(t));
         }
-        
+
         let eqn = parse_equation(tokens.into_iter())?;
         crossterm::execute!(
             stdout(),
@@ -227,9 +236,7 @@ impl<'a> TUIAcceptor<'a> {
             //   to the element string & the next letter
             //   is lowercase. If it is not, it's a new
             //   element).
-            Some(TUIToken::Element(elem))
-                if c.is_lowercase() =>
-            {
+            Some(TUIToken::Element(elem)) if c.is_lowercase() => {
                 // preceding element token
                 elem.push(c);
                 self.emit(c)?;

@@ -43,10 +43,9 @@ fn main() {
 
     let mut symbols = String::new();
 
-
     let mut tui = TUIAcceptor::new(&p);
     loop {
-        if let ShouldExit::Yes =  tui.handle_event(crossterm::event::read().unwrap()).unwrap() {
+        if let ShouldExit::Yes = tui.handle_event(crossterm::event::read().unwrap()).unwrap() {
             break;
         }
         // match crossterm::event::read().unwrap() {

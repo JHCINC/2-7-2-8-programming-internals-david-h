@@ -8,10 +8,10 @@ pub struct Element {
     pub symbol: String,
     pub number: ElementNumber,
     pub atomic_mass: f64,
-    pub density: Option<f64>
+    pub density: Option<f64>,
 }
 
 #[derive(Deserialize)]
 pub(super) struct Table {
-    pub elements: Vec<Element>
+    pub elements: Vec<Element>,
 }

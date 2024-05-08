@@ -6,30 +6,32 @@ use nalgebra::DMatrix;
 
 use super::Equation;
 
-
 pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
     if eq.products.is_empty() {
         return Ok(()); // no products - can't balance.
     }
 
     let mut matrix = create_matrix(eq)?;
-    
-    
+
     //println!("MATRIX: {matrix:?}");
     super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
-    let mut solutions = matrix.column(matrix.ncols() - 1).clone_owned().data.as_slice().to_vec();
-    
+    let mut solutions = matrix
+        .column(matrix.ncols() - 1)
+        .clone_owned()
+        .data
+        .as_slice()
+        .to_vec();
+
     solutions.iter_mut().for_each(|v| *v = v.abs());
-    
+
     // supremely naive.
-    
+
     // if contains non-integers
     if !solutions.iter().all(|v| v.fract() == 0.0) {
         // try scalars up to 100
 
         let mut solutions_clone = solutions.clone();
         for scalar in 2..100 {
-            
             for value in solutions_clone.iter_mut() {
                 *value *= scalar as f64;
             }
@@ -41,25 +43,24 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
             } else {
                 solutions_clone = solutions.clone();
             }
-
         }
     }
-    for (v, value) in eq.reactants.iter_mut().chain(eq.products.iter_mut()).zip(solutions.into_iter()) {
+    for (v, value) in eq
+        .reactants
+        .iter_mut()
+        .chain(eq.products.iter_mut())
+        .zip(solutions.into_iter())
+    {
         if let Some(nz) = NonZeroUsize::new(value as usize) {
             v.coefficient = nz;
-        } 
-
+        }
     }
 
-
     Ok(())
-
 }
-
 
 fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
     let products = eq.total_product_elements();
-
 
     let mut element_order = BiMap::new();
 
@@ -67,7 +68,7 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
         let mut products_iter = products.iter().collect::<Vec<_>>();
 
         products_iter.sort_by(|a, b| a.0.cmp(b.0));
-    
+
         for (index, product) in products_iter.into_iter().enumerate() {
             element_order.insert(product.0, index);
         }
@@ -76,14 +77,13 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
     // create a matrix with as many rows
     // as there are element constituents and
     // as many columns as there are components.
-    let mut matrix = DMatrix::<f64>::zeros(element_order.len(), eq.num_products() + eq.num_reactants());
-
+    let mut matrix =
+        DMatrix::<f64>::zeros(element_order.len(), eq.num_products() + eq.num_reactants());
 
     for (index, constituent) in eq.reactants().iter().enumerate() {
         let mut col = matrix.column_mut(index);
 
         for (element, count) in constituent.elements() {
-            
             let Some(index) = element_order.get_by_left(&element).copied() else {
                 bail!("Unused constituent on LHS")
             };
@@ -96,7 +96,6 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
         let mut col = matrix.column_mut(index + eq.num_reactants());
 
         for (element, count) in constituent.elements() {
-            
             let Some(index) = element_order.get_by_left(&element).copied() else {
                 bail!("Unused constituent on LHS")
             };
@@ -105,9 +104,7 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
         }
     }
 
-
     Ok(matrix)
-
 
     // // create a matrix with as many rows
     // // as there are element products and
@@ -130,7 +127,7 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
     //     let mut row = matrix.column_mut(index);
 
     //     for (element, count) in constituent.elements() {
-            
+
     //         let Some(index) = element_order.get_by_left(&element).copied() else {
     //             bail!("Unused constituent on LHS")
     //         };
@@ -148,7 +145,10 @@ mod tests {
 
     use nalgebra::matrix;
 
-    use crate::{equations::{solve::create_matrix, Equation, EquationConstituent}, periodic_table::{TablePrintable, PeriodicTable}};
+    use crate::{
+        equations::{solve::create_matrix, Equation, EquationConstituent},
+        periodic_table::{PeriodicTable, TablePrintable},
+    };
 
     #[test]
     fn test_water() {
@@ -175,7 +175,8 @@ mod tests {
         );
 
         let mut eq = eq;
-        let p = PeriodicTable::from_json(std::fs::File::open("./PeriodicTableJSON.json").unwrap()).unwrap();
+        let p = PeriodicTable::from_json(std::fs::File::open("./PeriodicTableJSON.json").unwrap())
+            .unwrap();
         super::balance_equation(&mut eq).unwrap();
         panic!("{}", eq.to_string(&p).unwrap());
     }

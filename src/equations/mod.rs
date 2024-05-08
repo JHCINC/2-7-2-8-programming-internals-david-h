@@ -134,7 +134,6 @@ impl EquationConstituent {
                     }
                 }
             }
-            
         }
         elements.into_iter()
     }

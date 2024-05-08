@@ -2,7 +2,6 @@ use std::ops::{AddAssign, MulAssign};
 
 use nalgebra::{DMatrixView, DMatrixViewMut, MatrixView1};
 
-
 // not a function because of weird nalgebra types - should not be a macro
 macro_rules! leading_nz {
     ($matrix:expr) => {
@@ -50,7 +49,6 @@ pub fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
             *val = values[row_idx][col_idx];
         }
     }
-
 }
 
 fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
