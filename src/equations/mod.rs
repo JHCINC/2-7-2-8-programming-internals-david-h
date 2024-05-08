@@ -160,8 +160,13 @@ impl TablePrintable for Equation {
         }
         if !self.products.is_empty() {
             write!(f, " = ")?;
-            for product in &self.products {
+            let num_products = self.products.len();
+            for (idx, product) in self.products.iter().enumerate() {
                 TablePrintable::fmt(product, t, f)?;
+
+                if idx != num_products - 1 {
+                    write!(f, " + ")?;
+                }
             }
         }
         Ok(())
