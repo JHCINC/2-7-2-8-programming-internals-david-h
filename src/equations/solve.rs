@@ -14,12 +14,13 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
 
     let mut matrix = create_matrix(eq)?;
     
-    super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
     
-    let mut solutions = matrix.row(matrix.nrows() - 1).clone_owned().data.as_mut_slice()[1..].to_vec();
+    //println!("MATRIX: {matrix:?}");
+    super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
+    let mut solutions = matrix.column(matrix.ncols() - 1).clone_owned().data.as_slice().to_vec();
     
     solutions.iter_mut().for_each(|v| *v = v.abs());
-
+    
     // supremely naive.
     
     // if contains non-integers

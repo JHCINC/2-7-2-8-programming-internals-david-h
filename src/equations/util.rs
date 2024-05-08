@@ -34,7 +34,6 @@ fn add(m: &mut DMatrixViewMut<f64>, a: usize, b: usize, scalar: f64) {
 /// https://ximera.osu.edu/linearalgebra/textbook/rowReduction/algorithm
 /// Currently not - using a library
 pub fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) {
-    println!("val: {}", m);
     let mut values = vec![];
     for row in m.row_iter() {
         let mut v = vec![];

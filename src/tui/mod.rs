@@ -1,8 +1,11 @@
+use std::fmt::Display;
 use std::io::stdout;
 use std::num::NonZeroUsize;
 
+use anyhow::{anyhow, bail};
 use crossterm::event::{
-    KeyCode, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    KeyCode, KeyModifiers, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
+    PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::ClearType;
 use crossterm::{cursor, style, terminal};
@@ -10,36 +13,44 @@ use crossterm::{
     event::{Event, KeyEvent},
     tty::IsTty,
 };
-use anyhow::anyhow;
 
-use crate::equations::Equation;
-use crate::equations::parse::{Token, parse_equation};
+use crate::equations::parse::{parse_equation, Token};
+use crate::equations::{Component, ComponentType, Equation};
 use crate::periodic_table::PeriodicTable;
 
 #[derive(Clone, Debug)]
 pub enum TUIToken {
     Coefficient(String),
-    Element { element: String, subscript: String },
+    Element(String),
+    Subscript(String),
     Plus,
     Equals,
+    LParen,
+    RParen,
     Whitespace(usize),
 }
 
+pub enum ShouldExit {
+    Yes,
+    No,
+}
 pub struct TUIAcceptor<'a> {
     looking_for_subscript: bool,
     tokens: Vec<TUIToken>,
     table: &'a PeriodicTable,
+    size: (u16, u16),
 }
 
 impl<'a> TUIAcceptor<'a> {
     pub fn new(p: &'a PeriodicTable) -> Self {
         crossterm::terminal::enable_raw_mode().unwrap();
 
+        let size = crossterm::terminal::size().expect("Should be able to get size");
         crossterm::execute!(
             stdout(),
-            cursor::Hide,
+            cursor::SetCursorStyle::BlinkingUnderScore,
             terminal::Clear(terminal::ClearType::All),
-            cursor::MoveTo(0, 0)
+            cursor::MoveTo(0, size.1 - 2)
         )
         .unwrap();
 
@@ -47,57 +58,144 @@ impl<'a> TUIAcceptor<'a> {
             looking_for_subscript: false,
             tokens: vec![],
             table: p,
+            size,
         }
     }
 
-    pub fn handle_key_event(&mut self, k: KeyEvent) -> anyhow::Result<()> {
+    pub fn handle_event(&mut self, e: Event) -> anyhow::Result<ShouldExit> {
+        match e {
+            Event::Resize(w, h) => {
+                self.size.0 = w;
+                self.size.1 = h;
+            }
+            Event::Key(k) => return self.handle_key_event(k),
+            _ => (),
+        }
+        Ok(ShouldExit::No)
+    }
+
+    pub fn handle_key_event(&mut self, k: KeyEvent) -> anyhow::Result<ShouldExit> {
         match k.code {
+            KeyCode::Char('c') if k.modifiers.contains(KeyModifiers::CONTROL) => {
+                return Ok(ShouldExit::Yes);
+            }
             KeyCode::Char('`') => self.subscript_start(),
             KeyCode::Backspace => self.backspace()?,
-            KeyCode::Enter => self.handle_enter()?,
+            KeyCode::Enter => {
+                if let Err(e) = self.handle_enter() {
+                    self.emit_str(e)?;
+                }
+            },
             KeyCode::Char('+') => self.handle_token('+', TUIToken::Plus)?,
             KeyCode::Char('=') => self.handle_token('=', TUIToken::Equals)?,
+            KeyCode::Char('(') => self.handle_token('(', TUIToken::LParen)?,
+            KeyCode::Char(')') => self.handle_token(')', TUIToken::RParen)?,
             KeyCode::Char(c) if c.is_whitespace() => self.handle_whitespace(c)?,
             KeyCode::Char(c) => self.accept_char(c)?,
             _ => (),
         }
-        Ok(())
+        Ok(ShouldExit::No)
     }
 
-    fn tui_token_process(&self, t: TUIToken) -> anyhow::Result<Option<Token>> {
-        match t {
-            TUIToken::Coefficient(n) => Ok(Some(Token::Coefficient(
-                NonZeroUsize::new(n.parse()?).ok_or(anyhow::anyhow!("Zero coefficient"))?,
-            ))),
-            TUIToken::Element { element, subscript } => Ok(Some({
-                let subscript: usize = if subscript.is_empty() {
-                    1
-                } else {
-                    subscript.parse()?
-                };
-
-                let subscript = NonZeroUsize::new(subscript).ok_or(anyhow!("zero subscript"))?;
-                let element = self.table.by_symbol(&element).ok_or(anyhow!("element {element} nonexistent"))?.number;
-                Token::Element { subscript, element }
-            })),
-            TUIToken::Equals => Ok(Some(Token::Arrow)),
-            TUIToken::Plus => Ok(Some(Token::Plus)),
-            TUIToken::Whitespace(_) => Ok(None),
-        }
+    fn emit_str(&mut self, d: impl Display) -> anyhow::Result<()> {
+        crossterm::execute!(
+            stdout(),
+            style::Print("> "),
+            style::Print(d),
+            terminal::ScrollUp(1),
+            cursor::MoveTo(0, self.size.1 - 2)
+        )
+        .unwrap();
+        Ok(())
     }
 
     fn handle_enter(&mut self) -> anyhow::Result<()> {
         let mut tokens = vec![];
-        for v in std::mem::take(&mut self.tokens) {
-            if let Some(v) = self.tui_token_process(v)? {
-                tokens.push(v);
+        let mut stream = std::mem::take(&mut self.tokens).into_iter().peekable();
+
+        let mut component_stack: Vec<ComponentType> = vec![];
+        let mut is_parenthesised = false;
+        while let Some(t) = stream.next().clone() {
+            match t {
+                TUIToken::LParen => {
+                    if is_parenthesised {
+                        bail!("Already parenthesised");
+                    }
+                    component_stack.push(ComponentType::Multiple(vec![], NonZeroUsize::new(1).unwrap()));
+                    is_parenthesised = true;
+                }
+                TUIToken::RParen => {
+                    is_parenthesised = false;
+                }
+                TUIToken::Element(elem) => {
+                    let subscript = NonZeroUsize::new(1).unwrap();
+                    let element = self
+                        .table
+                        .by_symbol(&elem)
+                        .ok_or(anyhow!("element {elem} nonexistent"))?
+                        .number;
+                    if !is_parenthesised {
+                        component_stack.push(ComponentType::Element(Component { element, subscript }))
+                    } else if let Some(ComponentType::Multiple(vec, _)) = component_stack.last_mut() {
+                        vec.push(Component { element, subscript });
+                    } else {
+                        unreachable!()
+                    }
+                }
+                TUIToken::Subscript(n) => {
+                    let subscript = NonZeroUsize::new(n.parse()?).ok_or(anyhow!("Zero subscript"))?;
+                    
+                    if let Some(last) = component_stack.last_mut() {
+                        match last {
+                            ComponentType::Element(c) => {
+                                c.subscript = subscript;
+                            }
+                            ComponentType::Multiple(vals, sub) => {
+                                if !is_parenthesised {
+                                    *sub = subscript;
+                                } else {
+                                    vals.last_mut().ok_or(anyhow!("subscript without preceding"))?.subscript = subscript;
+                                }
+                            }
+                        }
+                    } else {
+                        bail!("subscript without preceding");
+                    }
+                }
+                t => {
+                    for t in std::mem::take(&mut component_stack) {
+                        tokens.push(Token::Component(t));
+                    }
+                    match t {
+                        TUIToken::Coefficient(n) => tokens.push(Token::Coefficient(
+                            NonZeroUsize::new(n.parse()?).ok_or(anyhow::anyhow!("Zero coefficient"))?,
+                        )),
+    
+                        TUIToken::Equals => tokens.push(Token::Arrow),
+                        TUIToken::Plus => tokens.push(Token::Plus),
+                        TUIToken::Whitespace(_) => (),
+                        _ => ()
+                    }
+                },
             }
         }
+        for t in std::mem::take(&mut component_stack) {
+            tokens.push(Token::Component(t));
+        }
         
-        let eqn = parse_equation(tokens.into_iter())?.balanced()?;
-        self.close();
-        panic!("{}", eqn.to_string(self.table)?);
+        let eqn = parse_equation(tokens.into_iter())?;
+        crossterm::execute!(
+            stdout(),
+            terminal::ScrollUp(1),
+            cursor::MoveTo(0, self.size.1 - 2)
+        )
+        .unwrap();
+        self.emit_str(eqn.balanced()?.to_string(self.table)?)?;
+
         Ok(())
+        // self.close();
+        // panic!("{}", eqn.to_string(self.table)?);
+        // Ok(())
     }
 
     fn handle_token(&mut self, c: char, token: TUIToken) -> anyhow::Result<()> {
@@ -127,20 +225,18 @@ impl<'a> TUIAcceptor<'a> {
             // # are looking for a subscript token OR
             // # the subscript is empty (we are adding
             //   to the element string & the next letter
-            //   is lowercase. If it is not, it's a new 
+            //   is lowercase. If it is not, it's a new
             //   element).
-            Some(TUIToken::Element { subscript, element })
-                if self.looking_for_subscript || (subscript.is_empty() && c.is_lowercase()) =>
+            Some(TUIToken::Element(elem))
+                if c.is_lowercase() =>
             {
                 // preceding element token
-
-                if self.looking_for_subscript {
-                    subscript.push(c);
-                    self.emit(subscript_util(c.to_digit(10).unwrap()))?;
-                } else {
-                    element.push(c);
-                    self.emit(c)?;
-                }
+                elem.push(c);
+                self.emit(c)?;
+            }
+            Some(TUIToken::Subscript(subscript)) if self.looking_for_subscript => {
+                subscript.push(c);
+                self.emit(subscript_util(c.to_digit(10).unwrap()))?;
             }
             Some(TUIToken::Coefficient(s)) if c.is_numeric() => {
                 s.push(c);
@@ -148,14 +244,18 @@ impl<'a> TUIAcceptor<'a> {
             }
             _ => {
                 // no notable preceding token
-                self.emit(c)?;
+
                 if c.is_numeric() {
-                    self.tokens.push(TUIToken::Coefficient(c.to_string()));
+                    if self.looking_for_subscript {
+                        self.emit(subscript_util(c.to_digit(10).unwrap()))?;
+                        self.tokens.push(TUIToken::Subscript(c.to_string()));
+                    } else {
+                        self.emit(c)?;
+                        self.tokens.push(TUIToken::Coefficient(c.to_string()));
+                    }
                 } else if c.is_alphabetic() {
-                    self.tokens.push(TUIToken::Element {
-                        subscript: "".to_string(),
-                        element: c.to_string(),
-                    })
+                    self.emit(c)?;
+                    self.tokens.push(TUIToken::Element(c.to_string()))
                 }
             }
         }
@@ -180,13 +280,13 @@ impl<'a> TUIAcceptor<'a> {
                     *n -= 1;
                     *n == 0
                 }
-                TUIToken::Element { subscript, element } => {
-                    if subscript.pop().is_none() {
-                        element.pop();
-                        element.is_empty()
-                    } else {
-                        false
-                    }
+                TUIToken::Element(element) => {
+                    element.pop();
+                    element.is_empty()
+                }
+                TUIToken::Subscript(subscript) => {
+                    subscript.pop();
+                    subscript.is_empty()
                 }
                 _ => true,
             }

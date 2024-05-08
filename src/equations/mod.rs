@@ -174,7 +174,7 @@ impl TablePrintable for Equation {
 }
 
 impl Equation {
-    pub fn balanced(&mut self) -> anyhow::Result<Self> {
+    pub fn balanced(&self) -> anyhow::Result<Self> {
         let mut new = self.clone();
         solve::balance_equation(&mut new)?;
         Ok(new)
