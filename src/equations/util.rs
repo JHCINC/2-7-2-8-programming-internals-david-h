@@ -90,9 +90,8 @@ fn add(m: &mut DMatrixViewMut<f64>, a: usize, b: usize, scalar: f64) {
 /// Built from:
 /// https://ximera.osu.edu/linearalgebra/textbook/rowReduction/algorithm
 /// Currently is not - stolen implementation from https://github.com/TheAlgorithms/Rust/blob/master/src/math/gaussian_elimination.rs for testing
-pub fn gaussian_elimination(m: &DMatrixView<f64>) -> Vec<f64> {
-
-
+pub fn gaussian_elimination(m: &mut DMatrixViewMut<f64>) -> Vec<f64> {
+    println!("val: {}", m);
     let mut values = vec![];
     for row in m.row_iter() {
         let mut v = vec![];
@@ -102,7 +101,14 @@ pub fn gaussian_elimination(m: &DMatrixView<f64>) -> Vec<f64> {
         values.push(v);
     }
 
-    stolen_impl::gaussian_elimination(&mut values)
+    let v = stolen_impl::gaussian_elimination(&mut values);
+    for (row_idx, mut row) in m.row_iter_mut().enumerate() {
+        for (col_idx, val) in row.iter_mut().enumerate() {
+            *val = values[row_idx][col_idx];
+        }
+    }
+
+    v
 }
 
 fn gaussian_elimination_phase_one(m: &mut DMatrixViewMut<f64>, skip: usize) {
@@ -145,7 +151,6 @@ mod tests {
 
     use super::gaussian_elimination;
 
-
     #[test]
     fn gaussian_elimination_test_case() {
         // test_matrices(
@@ -166,10 +171,10 @@ mod tests {
         //     DMatrix::identity(3, 3)
         // );
 
-            let mut m = dmatrix![
-                2., 0., 2.;
-                0., 2., 1.;
-            ];
-            assert_eq!(gaussian_elimination(&m.view_range(.., ..)), [1.0, 0.5]);
+        let mut m = dmatrix![
+            2., 0., 2.;
+            0., 2., 1.;
+        ];
+        assert_eq!(gaussian_elimination(&mut m.view_range_mut(.., ..)), [1.0, 0.5]);
     }
 }

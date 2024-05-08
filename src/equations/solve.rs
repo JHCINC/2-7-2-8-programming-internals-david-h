@@ -12,40 +12,41 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
         return Ok(()); // no products - can't balance.
     }
 
-    let matrix = create_matrix(eq)?;
+    let mut matrix = create_matrix(eq)?;
     
-    let mut solutions = super::util::gaussian_elimination(&matrix.view_range(.., ..));
+    let mut solutions = super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
+    panic!("Matrix {matrix} solutions {solutions:?}");
 
-
-    // supremely naive.
+    // // supremely naive.
     
-    // if contains non-integers
-    if !solutions.iter().all(|v| v.fract() == 0.0) {
-        // try scalars up to 100
+    // // if contains non-integers
+    // if !solutions.iter().all(|v| v.fract() == 0.0) {
+    //     // try scalars up to 100
 
-        let mut solutions_clone = solutions.clone();
-        for scalar in 2..100 {
+    //     let mut solutions_clone = solutions.clone();
+    //     for scalar in 2..100 {
             
-            for value in solutions_clone.iter_mut() {
-                *value *= scalar as f64;
-            }
+    //         for value in solutions_clone.iter_mut() {
+    //             *value *= scalar as f64;
+    //         }
 
-            if solutions_clone.iter().all(|v| v.fract() == 0.0) {
-                solutions = solutions_clone;
-                for v in eq.products.iter_mut() {
-                    v.coefficient = NonZeroUsize::new(scalar).unwrap();
-                }
-                break;
-            } else {
-                solutions_clone = solutions.clone();
-            }
+    //         if solutions_clone.iter().all(|v| v.fract() == 0.0) {
+    //             solutions = solutions_clone;
+    //             for v in eq.products.iter_mut() {
+    //                 v.coefficient = NonZeroUsize::new(scalar).unwrap();
+    //             }
+    //             break;
+    //         } else {
+    //             solutions_clone = solutions.clone();
+    //         }
 
-        }
-    }
+    //     }
+    // }
 
-    for (v, value) in eq.reactants.iter_mut().zip(solutions.into_iter()) {
-        v.coefficient = NonZeroUsize::new(value as usize).unwrap();
-    }
+    // for (v, value) in eq.reactants.iter_mut().chain(eq.products.iter_mut()).zip(solutions.into_iter()) {
+    //     println!("Val: {value}");
+    //     v.coefficient = NonZeroUsize::new(value as usize).unwrap();
+    // }
 
 
     Ok(())
@@ -70,34 +71,72 @@ fn create_matrix(eq: &Equation) -> anyhow::Result<DMatrix<f64>> {
     }
 
     // create a matrix with as many rows
-    // as there are element products and
-    // as many columns as there are reactants
-    // plus one, accounting for the product.
-    let mut matrix = DMatrix::<f64>::zeros(products.len(), eq.num_reactants() + 1);
+    // as there are element constituents and
+    // as many columns as there are components.
+    let mut matrix = DMatrix::<f64>::zeros(element_order.len(), eq.num_products() + eq.num_reactants());
 
-    let mut last_column = matrix.column_mut(products.len());
 
-    // fill the last column with the products
-    for (index, value) in last_column.iter_mut().enumerate() {
-        let element_for_slot = element_order.get_by_right(&index).unwrap();
-        *value = products[element_for_slot] as f64
-    }
-
-    // fill each row with the number of
-    // atoms in each constituent
     for (index, constituent) in eq.reactants().iter().enumerate() {
-        let mut row = matrix.row_mut(index);
+        let mut col = matrix.column_mut(index);
 
         for (element, count) in constituent.elements() {
+            
             let Some(index) = element_order.get_by_left(&element).copied() else {
                 bail!("Unused constituent on LHS")
             };
 
-            *row.get_mut(index).expect("Matrix should be correct size") = count as f64;
+            *col.get_mut(index).expect("Matrix should be correct size") = count as f64;
         }
     }
 
+    for (index, constituent) in eq.products().iter().enumerate() {
+        let mut col = matrix.column_mut(index + eq.num_reactants());
+
+        for (element, count) in constituent.elements() {
+            
+            let Some(index) = element_order.get_by_left(&element).copied() else {
+                bail!("Unused constituent on LHS")
+            };
+
+            *col.get_mut(index).expect("Matrix should be correct size") = -(count as f64);
+        }
+    }
+
+
     Ok(matrix)
+
+
+    // // create a matrix with as many rows
+    // // as there are element products and
+    // // as many columns as there are reactants
+    // // plus one, accounting for the product.
+    // let mut matrix = DMatrix::<f64>::zeros(products.len(), eq.num_reactants() + 1);
+
+    // let mut last_column = matrix.column_mut(products.len());
+
+    // // fill the last column with the products
+    // for (index, value) in last_column.iter_mut().enumerate() {
+    //     let element_for_slot = element_order.get_by_right(&index).unwrap();
+    //     println!("Elem in row {index} is {element_for_slot} val {}", products[element_for_slot]);
+    //     *value = products[element_for_slot] as f64
+    // }
+
+    // // fill each row with the number of
+    // // atoms in each constituent
+    // for (index, constituent) in eq.reactants().iter().enumerate() {
+    //     let mut row = matrix.column_mut(index);
+
+    //     for (element, count) in constituent.elements() {
+            
+    //         let Some(index) = element_order.get_by_left(&element).copied() else {
+    //             bail!("Unused constituent on LHS")
+    //         };
+
+    //         *row.get_mut(index).expect("Matrix should be correct size") = count as f64;
+    //     }
+    // }
+
+    // Ok(matrix)
 }
 
 #[cfg(test)]
