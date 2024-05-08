@@ -131,6 +131,10 @@ impl Equation {
         &self.reactants
     }
 
+    pub fn products(&self) -> &[EquationConstituent] {
+        &self.products
+    }
+
     pub fn num_products(&self) -> usize {
         self.products.len()
     }
