@@ -199,6 +199,7 @@ impl<'a> TUIAcceptor<'a> {
             cursor::MoveTo(0, self.size.1 - 2)
         )
         .unwrap();
+
         self.emit_str(eqn.balanced()?.to_string(self.table)?)?;
 
         Ok(())

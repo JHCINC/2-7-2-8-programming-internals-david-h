@@ -13,8 +13,14 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
 
     let mut matrix = create_matrix(eq)?;
 
-    //println!("MATRIX: {matrix:?}");
+    // KOH + H`3PO`4 = K`3PO`4 + H`2O
+    // CaCl`2 + Na`3PO`4 = Ca`3(PO`4)`2 + NaCl
+
+    // test eqns
+    //panic!("Matrix: {matrix}");
+
     super::util::gaussian_elimination(&mut matrix.view_range_mut(.., ..));
+
     let mut solutions = matrix
         .column(matrix.ncols() - 1)
         .clone_owned()
@@ -24,32 +30,54 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
 
     solutions.iter_mut().for_each(|v| *v = v.abs());
 
-    // supremely naive.
+    // supremely naive and awful. should be done entirely with
+    // fractions, not floating-point numbers. too lazy at this
+    // point to architect a solution like that. certainly a
+    // project for the future :^)
 
     // if contains non-integers
+
+    let mut scalar_val = 0.0;
     if !solutions.iter().all(|v| v.fract() == 0.0) {
         // try scalars up to 100
 
         let mut solutions_clone = solutions.clone();
+        let mut found = false;
         for scalar in 2..100 {
             for value in solutions_clone.iter_mut() {
                 *value *= scalar as f64;
+
+                if (value.round() - *value).abs() < 0.0001 {
+                    *value = value.round()
+                }
             }
 
             if solutions_clone.iter().all(|v| v.fract() == 0.0) {
                 solutions = solutions_clone;
-                solutions.push(scalar as f64);
+                found = true;
+                scalar_val = scalar as f64;
                 break;
             } else {
                 solutions_clone = solutions.clone();
             }
         }
+        if !found {
+            panic!("could not find coefficient")
+        }
     }
+
+    solutions.iter_mut().for_each(|v| {
+        // v == 0
+        if *v < f64::EPSILON {
+            *v = scalar_val
+        }
+    });
+
     for (v, value) in eq
         .reactants
         .iter_mut()
         .chain(eq.products.iter_mut())
-        .zip(solutions.into_iter())
+        .zip(solutions.into_iter().chain(std::iter::repeat(scalar_val)))
     {
         if let Some(nz) = NonZeroUsize::new(value as usize) {
             v.coefficient = nz;
