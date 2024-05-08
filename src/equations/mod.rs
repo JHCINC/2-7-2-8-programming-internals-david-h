@@ -27,16 +27,51 @@ impl TablePrintable for Component {
 
         let subscript = self.subscript.get();
         if subscript > 1 {
-            write!(f, "{}", subscript_util(subscript as u32))?;
+            write!(f, "{}", subscript_num(subscript as u32))?;
         }
         Ok(())
+    }
+}
+#[derive(Debug, Clone)]
+pub enum ComponentType {
+    Element(Component),
+    Multiple(Vec<Component>, NonZeroUsize),
+}
+
+impl ComponentType {
+    pub fn has_multiple(&self) -> bool {
+        matches!(self, ComponentType::Multiple(_, _))
+    }
+}
+
+impl TablePrintable for ComponentType {
+    fn fmt(
+        &self,
+        t: &crate::periodic_table::PeriodicTable,
+        f: &mut impl std::fmt::Write,
+    ) -> std::fmt::Result {
+        match self {
+            Self::Element(e) => e.fmt(t, f),
+            Self::Multiple(e, n) => {
+                write!(f, "(");
+                for v in e {
+                    v.fmt(t, f)?;
+                }
+                write!(f, ")");
+                let n = n.get();
+                if n > 1 {
+                    write!(f, "{}", subscript_num(n as u32));
+                }
+                Ok(())
+            }
+        }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct EquationConstituent {
     pub coefficient: NonZeroUsize,
-    pub components: Vec<Component>,
+    pub components: Vec<ComponentType>,
 }
 
 impl TablePrintable for EquationConstituent {
@@ -60,10 +95,10 @@ impl EquationConstituent {
     pub fn new(coefficient: usize, components: &[(ElementNumber, usize)]) -> Self {
         let mut components_store = vec![];
         for (element, count) in components {
-            components_store.push(Component {
+            components_store.push(ComponentType::Element(Component {
                 element: *element,
                 subscript: NonZeroUsize::new(*count).unwrap(),
-            });
+            }));
         }
         Self {
             coefficient: NonZeroUsize::new(coefficient).unwrap(),
@@ -74,15 +109,34 @@ impl EquationConstituent {
     /// Returns the total number of element
     /// atoms present, accounting for the coefficient.
     pub fn elements(&self) -> impl Iterator<Item = (ElementNumber, usize)> + '_ {
-        self.components.iter().map(|v| {
-            (
-                v.element,
-                v.subscript
-                    .get()
-                    .checked_mul(self.coefficient.get())
-                    .expect("Overflow during constituent calculation"),
-            )
-        })
+        let mut elements = HashMap::new();
+
+        for c in self.components.iter() {
+            match c {
+                ComponentType::Element(elem) => {
+                    let count = elem
+                        .subscript
+                        .get()
+                        .checked_mul(self.coefficient.get())
+                        .expect("Overflow during constituent calculation");
+                    *elements.entry(elem.element).or_default() += count;
+                }
+                ComponentType::Multiple(elems, subscript) => {
+                    for elem in elems {
+                        let count = elem
+                            .subscript
+                            .get()
+                            .checked_mul(self.coefficient.get())
+                            .expect("Overflow during constituent calculation")
+                            .checked_mul(subscript.get())
+                            .expect("Overflow during subscript multiplication");
+                        *elements.entry(elem.element).or_default() += count;
+                    }
+                }
+            }
+            
+        }
+        elements.into_iter()
     }
 }
 
@@ -162,16 +216,18 @@ impl Equation {
 mod tests {
     use std::num::{NonZeroU32, NonZeroUsize};
 
+    use crate::equations;
+
     use super::{Component, EquationConstituent};
 
     #[test]
     fn constituent_elements() {
         let mut con = EquationConstituent {
             coefficient: NonZeroUsize::new(3).unwrap(),
-            components: vec![Component {
+            components: vec![equations::ComponentType::Element(Component {
                 element: NonZeroU32::new(1).unwrap(),
                 subscript: NonZeroUsize::new(2).unwrap(),
-            }],
+            })],
         };
 
         let vals = con.elements().collect::<Vec<_>>();

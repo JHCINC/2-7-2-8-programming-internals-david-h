@@ -44,7 +44,10 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
         }
     }
     for (v, value) in eq.reactants.iter_mut().chain(eq.products.iter_mut()).zip(solutions.into_iter()) {
-        v.coefficient = NonZeroUsize::new(value as usize).unwrap();
+        if let Some(nz) = NonZeroUsize::new(value as usize) {
+            v.coefficient = nz;
+        } 
+
     }
 
 
