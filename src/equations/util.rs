@@ -2,6 +2,7 @@ use std::ops::{AddAssign, MulAssign};
 
 use nalgebra::{DMatrixView, DMatrixViewMut, MatrixView1};
 
+/// from https://github.com/TheAlgorithms/Rust/blob/master/src/math/gaussian_elimination.rs
 mod stolen_impl {
 
     pub fn gaussian_elimination(matrix: &mut [Vec<f64>]) -> Vec<f64> {
