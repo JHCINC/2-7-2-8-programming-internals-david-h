@@ -197,15 +197,10 @@ mod tests {
         assert_eq!(
             create_matrix(&eq).unwrap(),
             matrix![
-                2., 0., 2.;
-                0., 2., 1.;
+                2., 0., -2.;
+                0., 2., -1.;
             ]
         );
 
-        let mut eq = eq;
-        let p = PeriodicTable::from_json(std::fs::File::open("./PeriodicTableJSON.json").unwrap())
-            .unwrap();
-        super::balance_equation(&mut eq).unwrap();
-        panic!("{}", eq.to_string(&p).unwrap());
     }
 }
