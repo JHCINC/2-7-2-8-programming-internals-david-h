@@ -3,19 +3,13 @@ use std::io::stdout;
 use std::num::NonZeroUsize;
 
 use anyhow::{anyhow, bail};
-use crossterm::event::{
-    KeyCode, KeyModifiers, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
-};
-use crossterm::terminal::ClearType;
+use crossterm::event::{KeyCode, KeyModifiers};
+
+use crossterm::event::{Event, KeyEvent};
 use crossterm::{cursor, style, terminal};
-use crossterm::{
-    event::{Event, KeyEvent},
-    tty::IsTty,
-};
 
 use crate::equations::parse::{parse_equation, Token};
-use crate::equations::{Component, ComponentType, Equation};
+use crate::equations::{Component, ComponentType};
 use crate::periodic_table::PeriodicTable;
 
 #[derive(Clone, Debug)]

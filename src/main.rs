@@ -1,18 +1,8 @@
-use crossterm::event::{
-    KeyCode, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
-};
-use crossterm::terminal::ClearType;
-use crossterm::{cursor, style, terminal};
-use crossterm::{
-    event::{Event, KeyEvent},
-    tty::IsTty,
-};
+use crossterm::tty::IsTty;
 use std::fs::File;
-use std::io::Write;
-use std::io::{stdin, stdout};
-use std::num::NonZeroUsize;
 
-use crate::equations::parse::{parse_equation, Token};
+use std::io::stdout;
+
 use crate::periodic_table::PeriodicTable;
 use crate::tui::{ShouldExit, TUIAcceptor};
 mod equations;
@@ -24,139 +14,17 @@ fn main() {
         todo!();
     }
 
-    // crossterm::terminal::enable_raw_mode().unwrap();
+    let _s = String::new();
 
-    // crossterm::execute!(
-    //     stdout(),
-    //     cursor::Hide,
-    //     terminal::Clear(terminal::ClearType::All),
-    //     cursor::MoveTo(0, 0)
-    // )
-    // .unwrap();
-
-    let mut s = String::new();
-
-    let mut is_subscript = false;
+    let _is_subscript = false;
 
     let p = PeriodicTable::from_json(File::open("./PeriodicTableJSON.json").unwrap()).unwrap();
-    let mut tokens: Vec<equations::parse::Token> = vec![];
+    let _tokens: Vec<equations::parse::Token> = vec![];
 
-    let mut symbols = String::new();
+    let _symbols = String::new();
 
     let mut tui = TUIAcceptor::new(&p);
-    loop {
-        if let ShouldExit::Yes = tui.handle_event(crossterm::event::read().unwrap()).unwrap() {
-            break;
-        }
-        // match crossterm::event::read().unwrap() {
-        //     Event::Key(key) => {
-        //         tui.handle_key_event(key).unwrap();
-        //     }
-        //     _ => ()
-        //     // match code {
-        //     //     KeyCode::Esc => {
-        //     //         crossterm::terminal::disable_raw_mode().unwrap();
-        //     //         break;
-        //     //     }
-        //     //     KeyCode::Backspace => {
-        //     //         crossterm::execute!(
-        //     //             stdout(),
-        //     //             cursor::MoveLeft(1),
-        //     //             style::Print(" "),
-        //     //             cursor::MoveLeft(1)
-        //     //         )
-        //     //         .unwrap();
-
-        //     //         if let Some(Token::Element { subscript, .. }) = tokens.last_mut() {
-        //     //             if subscript.get() > 1 {
-        //     //                 *subscript = NonZeroUsize::new(1).unwrap();
-        //     //                 continue;
-        //     //             }
-        //     //         }
-        //     //         tokens.pop();
-        //     //         symbols.pop();
-        //     //     }
-        //     //     KeyCode::Char(mut ch) => {
-        //     //         if ch.is_whitespace() {
-        //     //             crossterm::execute!(stdout(), style::Print(ch)).unwrap();
-        //     //             continue;
-        //     //         }
-        //     //         if ch == '`' {
-        //     //             is_subscript = true;
-        //     //             continue;
-        //     //         }
-        //     //         if ch == '+' {
-        //     //             if !symbols.is_empty() {
-        //     //                 tokens.push(Token::Element {
-        //     //                     subscript: NonZeroUsize::new(1).unwrap(),
-        //     //                     element: p.by_symbol(&symbols).unwrap().number,
-        //     //                 });
-        //     //                 symbols.clear();
-        //     //             }
-
-        //     //             tokens.push(Token::Plus);
-        //     //             crossterm::execute!(stdout(), style::Print(ch)).unwrap();
-        //     //             continue;
-        //     //         }
-        //     //         if ch == '=' {
-        //     //             if !symbols.is_empty() {
-        //     //                 tokens.push(Token::Element {
-        //     //                     subscript: NonZeroUsize::new(1).unwrap(),
-        //     //                     element: p.by_symbol(&symbols).unwrap().number,
-        //     //                 });
-        //     //                 symbols.clear();
-        //     //             }
-        //     //             tokens.push(Token::Arrow);
-        //     //             crossterm::execute!(stdout(), style::Print(ch)).unwrap();
-        //     //             continue;
-        //     //         }
-        //     //         if is_subscript {
-        //     //             is_subscript = false;
-        //     //             if ch.is_numeric() {
-        //     //                 let digit = ch.to_digit(10).unwrap();
-        //     //                 ch = subscript_util(digit);
-
-        //     //                 if let Some(Token::Element { subscript, .. }) = tokens.last_mut() {
-        //     //                     *subscript = NonZeroUsize::new(digit as usize).unwrap();
-        //     //                 } else {
-        //     //                     tokens.push(Token::Element {
-        //     //                         subscript: NonZeroUsize::new(digit as usize).unwrap(),
-        //     //                         element: p.by_symbol(&symbols).unwrap().number,
-        //     //                     });
-        //     //                     symbols.clear();
-        //     //                 }
-        //     //             }
-        //     //         } else {
-        //     //             if ch.is_alphabetic() {
-        //     //                 symbols.push(ch);
-        //     //             } else {
-        //     //                 tokens.push(Token::Element {
-        //     //                     subscript: NonZeroUsize::new(1).unwrap(),
-        //     //                     element: p.by_symbol(&symbols).unwrap().number,
-        //     //                 });
-        //     //                 symbols.clear();
-        //     //             }
-        //     //         }
-        //     //         crossterm::execute!(stdout(), style::Print(ch)).unwrap();
-        //     //     }
-        //     //     KeyCode::Enter => {
-        //     //         if !symbols.is_empty() {
-        //     //             tokens.push(Token::Element {
-        //     //                 subscript: NonZeroUsize::new(1).unwrap(),
-        //     //                 element: p.by_symbol(&symbols).unwrap().number,
-        //     //             });
-        //     //             symbols.clear();
-        //     //         }
-
-        //     //         crossterm::execute!(stdout(), cursor::MoveToNextLine(1), style::Print("> "))
-        //     //             .unwrap();
-        //     //         crossterm::terminal::disable_raw_mode().unwrap();
-        //     //         let eqn = parse_equation(tokens.into_iter()).unwrap().balanced().unwrap();
-        //     //         panic!("{}", eqn.to_string(&p).unwrap());
-        //     //     }
-        //     //     _ => (),
-        //     // },
-        //     // _ => (),
-        // }
+    while let ShouldExit::No = tui.handle_event(crossterm::event::read().unwrap()).unwrap() {
+        // do nothing
     }
 }

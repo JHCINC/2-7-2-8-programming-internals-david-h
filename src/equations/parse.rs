@@ -2,8 +2,6 @@ use std::{iter::Peekable, num::NonZeroUsize};
 
 use anyhow::bail;
 
-use crate::periodic_table::ElementNumber;
-
 use super::{ComponentType, Equation, EquationConstituent};
 
 #[derive(Clone, Debug)]
@@ -25,7 +23,7 @@ pub fn parse_equation(i: impl Iterator<Item = Token>) -> anyhow::Result<Equation
     let mut targeting_products = false;
 
     while let Some(token) = i.next() {
-        let mut should_parse_constituent = false;
+        let should_parse_constituent;
         match token {
             // if we find a plus
             Token::Plus => {
@@ -97,17 +95,15 @@ pub fn parse_constituent(
 
 #[cfg(test)]
 mod tests {
-    use std::num::{NonZeroU32, NonZeroUsize};
+    // use std::num::{NonZeroU32, NonZeroUsize};
 
-    use super::{parse_equation, Token};
+    // fn nzus(u: usize) -> NonZeroUsize {
+    //     NonZeroUsize::new(u).unwrap()
+    // }
 
-    fn nzus(u: usize) -> NonZeroUsize {
-        NonZeroUsize::new(u).unwrap()
-    }
-
-    fn nz32(u: u32) -> NonZeroU32 {
-        NonZeroU32::new(u).unwrap()
-    }
+    // fn nz32(u: u32) -> NonZeroU32 {
+    //     NonZeroU32::new(u).unwrap()
+    // }
 
     // #[test]
     // fn basic_equation_parsing() {

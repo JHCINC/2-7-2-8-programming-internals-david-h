@@ -1,4 +1,4 @@
-use std::{collections::HashMap, num::NonZeroUsize};
+use std::num::NonZeroUsize;
 
 use anyhow::bail;
 use bimap::BiMap;
@@ -175,7 +175,7 @@ mod tests {
 
     use crate::{
         equations::{solve::create_matrix, Equation, EquationConstituent},
-        periodic_table::{PeriodicTable, TablePrintable},
+        periodic_table::PeriodicTable,
     };
 
     #[test]

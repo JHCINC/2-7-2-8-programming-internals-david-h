@@ -2,10 +2,8 @@ use std::{collections::HashMap, num::NonZeroUsize};
 
 use crate::{
     periodic_table::{ElementNumber, PeriodicTable, TablePrintable},
-    tui::{subscript_num, subscript_util},
+    tui::subscript_num,
 };
-
-use self::parse::{parse_equation, Token};
 
 pub mod parse;
 mod solve;
@@ -53,14 +51,14 @@ impl TablePrintable for ComponentType {
         match self {
             Self::Element(e) => e.fmt(t, f),
             Self::Multiple(e, n) => {
-                write!(f, "(");
+                write!(f, "(")?;
                 for v in e {
                     v.fmt(t, f)?;
                 }
-                write!(f, ")");
+                write!(f, ")")?;
                 let n = n.get();
                 if n > 1 {
-                    write!(f, "{}", subscript_num(n as u32));
+                    write!(f, "{}", subscript_num(n as u32))?;
                 }
                 Ok(())
             }
@@ -226,7 +224,7 @@ mod tests {
 
     #[test]
     fn constituent_elements() {
-        let mut con = EquationConstituent {
+        let con = EquationConstituent {
             coefficient: NonZeroUsize::new(3).unwrap(),
             components: vec![equations::ComponentType::Element(Component {
                 element: NonZeroU32::new(1).unwrap(),
