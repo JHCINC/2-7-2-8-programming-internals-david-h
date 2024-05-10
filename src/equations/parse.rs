@@ -95,53 +95,59 @@ pub fn parse_constituent(
 
 #[cfg(test)]
 mod tests {
-    // use std::num::{NonZeroU32, NonZeroUsize};
+    use std::num::{NonZeroU32, NonZeroUsize};
+
+    use crate::equations::{ComponentType, Component, parse::{Token, parse_equation}};
 
     // fn nzus(u: usize) -> NonZeroUsize {
     //     NonZeroUsize::new(u).unwrap()
     // }
 
-    // fn nz32(u: u32) -> NonZeroU32 {
-    //     NonZeroU32::new(u).unwrap()
-    // }
+    fn nzus(u: usize) -> NonZeroUsize {
+        NonZeroUsize::new(u).unwrap()
+    }
 
-    // #[test]
-    // fn basic_equation_parsing() {
-    //     // tokens for water balanced eqn (2H2 + O2 -> 2H2O)
-    //     let tokens = [
-    //         Token::Coefficient(nzus(2)), // 2
-    //         Token::Element {
-    //             subscript: nzus(2),
-    //             element: nz32(1),
-    //         }, // H2
-    //         Token::Plus,                 // +
-    //         Token::Element {
-    //             subscript: nzus(2),
-    //             element: nz32(8),
-    //         }, // O2
-    //         Token::Arrow,                // ->
-    //         Token::Coefficient(nzus(2)), // 2
-    //         Token::Element {
-    //             subscript: nzus(2),
-    //             element: nz32(1),
-    //         }, // H2
-    //         Token::Element {
-    //             subscript: nzus(1),
-    //             element: nz32(8),
-    //         }, // O
-    //     ];
+    fn nz32(u: u32) -> NonZeroU32 {
+        NonZeroU32::new(u).unwrap()
+    }
 
-    //     let parsed = parse_equation(tokens.into_iter()).unwrap();
+    #[test]
+    fn basic_equation_parsing() {
+        // tokens for water balanced eqn (2H2 + O2 -> 2H2O)
+        let tokens = [
+            Token::Coefficient(nzus(2)), // 2
+            Token::Component(ComponentType::Element(Component {
+                subscript: nzus(2),
+                element: nz32(1),
+            })), // H2
+            Token::Plus,                 // +
+            Token::Component(ComponentType::Element(Component {
+                subscript: nzus(2),
+                element: nz32(8),
+            })), // O2
+            Token::Arrow,                // ->
+            Token::Coefficient(nzus(2)), // 2
+            Token::Component(ComponentType::Element(Component {
+                subscript: nzus(2),
+                element: nz32(1),
+            })), // H2
+            Token::Component(ComponentType::Element(Component {
+                subscript: nzus(1),
+                element: nz32(8),
+            })), // O
+        ];
 
-    //     assert_eq!(parsed.products.len(), 1);
-    //     assert_eq!(parsed.reactants.len(), 2);
+        let parsed = parse_equation(tokens.into_iter()).unwrap();
 
-    //     // check reactants
-    //     assert_eq!(parsed.reactants[0].components[0].element, nz32(1)); // hydrogen
-    //     assert_eq!(parsed.reactants[1].components[0].element, nz32(8)); // oxygen
+        assert_eq!(parsed.products.len(), 1);
+        assert_eq!(parsed.reactants.len(), 2);
 
-    //     // check products
-    //     assert_eq!(parsed.products[0].components[0].element, nz32(1)); // hydrogen
-    //     assert_eq!(parsed.products[0].components[1].element, nz32(8)); // oxygen
-    // }
+        // check reactants
+        assert_eq!(parsed.reactants[0].components[0].element(), nz32(1)); // hydrogen
+        assert_eq!(parsed.reactants[1].components[0].element(), nz32(8)); // oxygen
+
+        // check products
+        assert_eq!(parsed.products[0].components[0].element, nz32(1)); // hydrogen
+        assert_eq!(parsed.products[0].components[1].element, nz32(8)); // oxygen
+    }
 }
