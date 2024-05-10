@@ -99,10 +99,6 @@ mod tests {
 
     use crate::equations::{ComponentType, Component, parse::{Token, parse_equation}};
 
-    // fn nzus(u: usize) -> NonZeroUsize {
-    //     NonZeroUsize::new(u).unwrap()
-    // }
-
     fn nzus(u: usize) -> NonZeroUsize {
         NonZeroUsize::new(u).unwrap()
     }
@@ -138,16 +134,15 @@ mod tests {
         ];
 
         let parsed = parse_equation(tokens.into_iter()).unwrap();
-
         assert_eq!(parsed.products.len(), 1);
         assert_eq!(parsed.reactants.len(), 2);
 
         // check reactants
         assert_eq!(parsed.reactants[0].components[0].element(), nz32(1)); // hydrogen
         assert_eq!(parsed.reactants[1].components[0].element(), nz32(8)); // oxygen
-
+        
         // check products
-        assert_eq!(parsed.products[0].components[0].element, nz32(1)); // hydrogen
-        assert_eq!(parsed.products[0].components[1].element, nz32(8)); // oxygen
+        assert_eq!(parsed.products[0].components[0].element(), nz32(1)); // hydrogen
+        assert_eq!(parsed.products[0].components[1].element(), nz32(8)); // oxygen
     }
 }
