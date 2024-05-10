@@ -40,6 +40,16 @@ impl ComponentType {
     pub fn has_multiple(&self) -> bool {
         matches!(self, ComponentType::Multiple(_, _))
     }
+
+    /// Returns the element for this component
+    /// if it contains only one. Panics otherwise.
+    pub fn element(&self) -> ElementNumber {
+        if let Self::Element(c) = self {
+            c.element
+        } else {
+            panic!("Contains multiple")
+        }
+    }
 }
 
 impl TablePrintable for ComponentType {
