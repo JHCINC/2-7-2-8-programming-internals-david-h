@@ -39,14 +39,15 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
 
     let mut scalar_val = 0.0;
     if !solutions.iter().all(|v| v.fract() == 0.0) {
-        // try scalars up to 100
+        // try scalars up to 100 - very naive
 
         let mut solutions_clone = solutions.clone();
         let mut found = false;
         for scalar in 2..100 {
             for value in solutions_clone.iter_mut() {
                 *value *= scalar as f64;
-
+                // 1/3 + 1/3 + 1/3 should = 1, not 0.9999
+                // again a problem with using floats
                 if (value.round() - *value).abs() < 0.0001 {
                     *value = value.round()
                 }
@@ -67,7 +68,12 @@ pub fn balance_equation(eq: &mut Equation) -> anyhow::Result<()> {
     }
 
     solutions.iter_mut().for_each(|v| {
-        // v == 0
+        // 0-values replaced with scalar.
+        // Why? ask a mathematician :^)
+        // seems to work. This whole
+        // matrix solving section
+        // should really be
+        // rewritten.
         if *v < f64::EPSILON {
             *v = scalar_val
         }
@@ -201,6 +207,5 @@ mod tests {
                 0., 2., -1.;
             ]
         );
-
     }
 }
